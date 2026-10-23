@@ -1,4 +1,3 @@
-using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -94,30 +93,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public string PauseResumeText => State == RecordingState.Paused ? "Resume" : "Pause";
 
-    public string StatusText => State switch
-    {
-        RecordingState.Countdown when CountdownRemaining > 0 => $"Starting in {CountdownRemaining}…",
-        RecordingState.Countdown => "Starting…",
-        RecordingState.Recording => "Recording",
-        RecordingState.Paused => "Paused",
-        RecordingState.Finishing => "Saving…",
-        RecordingState.Failed => "Failed",
-        _ => "Ready",
-    };
+    public string StatusText => DisplayText.ForStatus(State, CountdownRemaining);
 
     public string OutputFolder => _settings.Current.OutputFolder;
 
-    /// <summary>The last two path segments, e.g. <c>Videos\ScreenRecorder</c>.</summary>
-    public string OutputFolderDisplay
-    {
-        get
-        {
-            var folder = OutputFolder.TrimEnd(Path.DirectorySeparatorChar);
-            var parent = Path.GetFileName(Path.GetDirectoryName(folder));
-            var name = Path.GetFileName(folder);
-            return string.IsNullOrEmpty(parent) ? folder : Path.Combine(parent, name);
-        }
-    }
+    public string OutputFolderDisplay => DisplayText.ForFolder(OutputFolder);
 
     public bool CaptureSystemAudio
     {
