@@ -6,6 +6,9 @@ Goal: minimal UI, one-click recording to MP4, nothing the user has to learn.
 This document is the single source of truth for implementation. Work through the
 phases in order. Each phase ends with a build that compiles and tests that pass.
 
+> **Status (2026-10-23): v1.0.0 implemented.** Decisions that changed during implementation
+> are recorded in [section 9](#9-implementation-record-v100); where sections 1–8 disagree, section 9 wins.
+
 ---
 
 ## 1. Product scope
@@ -308,3 +311,31 @@ Each phase: implement → `dotnet build` → `dotnet test` → short manual chec
 - If `ScreenRecorderLib` API differs from what the mapper expects, read the package's XML docs in
   `~/.nuget/packages/screenrecorderlib/<version>/lib/` first; do not guess member names.
 - Keep the UI minimal. Every added control must justify itself against section 4.
+
+---
+
+## 9. Implementation record (v1.0.0)
+
+Decisions that changed while implementing, and why.
+
+| Plan said | Implemented | Why |
+|---|---|---|
+| `IClock` abstraction | `System.TimeProvider` (BCL) + `FakeTimeProvider` in tests | Built into .NET 8; no custom interface to maintain. |
+| Session raises `ElapsedChanged` | Session exposes `Elapsed`; `MainViewModel` polls it every 250 ms with a `TimeProvider` timer | Keeps Core free of background ticking threads; UI owns refresh cadence. |
+| `Failed ──Acknowledge──▶ Idle` | `Failed` is restartable directly (`CanStart()` is true for `Idle` and `Failed`) | One fewer transition; the UI never needed an explicit acknowledge step. |
+| `ScreenRecorderLib` (version unspecified) | 7.0.1, audio via `LoopbackAudioSource` / `CaptureAudioSource` | 7.x fixes stalls on silent system audio; verified to load and record on .NET 8 despite targeting .NET Framework metadata. |
+| Variable frame rate (library default) | `IsFixedFramerate = true` | Variable-rate MP4s confuse editors; verified 29–30 fps output. |
+| `FluentAssertions` (latest) | 7.2.0 | 8.x requires a paid licence for commercial use. |
+| Region selector covers the virtual screen | One overlay window per display | Correct on mixed-DPI setups; matches the engine's one-display-per-region model. |
+| "Select region" button next to the source drop-down | "Window…" and "Region…" entries inside the drop-down | One control instead of two; a picked window/region stays in the list. |
+| Settings as popover | Small modal dialog; global hotkeys suspended while it is open | Pressing the current shortcut while re-binding must not start a recording. |
+| Notifications as toast | Inline banner in the main window (success auto-dismisses after 8 s, errors stay) | The window is restored after every recording, so the banner is always seen. |
+| — | `IRecordingLauncher` (Core) | Builds options from settings + source; keeps `MainViewModel` thin and testable. |
+| — | `RecordingUiCoordinator`, `HotkeyManager`, `TrayViewModel` (App) | Split window effects, hotkey sync and tray behaviour out of `MainViewModel` (SRP). |
+| — | Countdown overlay uses `WDA_EXCLUDEFROMCAPTURE` | It can never appear in a recording, regardless of timing. |
+| Single-file publish | Single-file exe **plus** `ScreenRecorderLib.dll` beside it | C++/CLI mixed-mode assemblies cannot load from a single-file bundle (verified: `BadImageFormatException`). |
+| — | `SCREENRECORDER_THEME` environment override (`dark` or `light`) | Lets developers preview both themes without changing Windows settings. |
+
+Repository pitfalls found:
+- The stock Visual Studio `.gitignore` has a macOS `*.app` rule. Git on Windows is case-insensitive, so it silently ignored `src/ScreenRecorder.App/`. An explicit exception was added.
+- The same file ignores `*.pubxml`; the release profile is whitelisted.

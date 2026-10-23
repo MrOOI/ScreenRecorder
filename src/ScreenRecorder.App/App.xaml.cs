@@ -62,11 +62,20 @@ public partial class App : Application
     {
         if (_host is not null)
         {
-            _host.Services.GetRequiredService<ILogger<App>>().LogInformation("Screen Recorder exiting");
-            _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            var logger = _host.Services.GetRequiredService<ILogger<App>>();
+            logger.LogInformation("Screen Recorder exiting");
+            try
+            {
+                _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
 
-            // Disposes singletons: engine, hotkeys, tray icon, timers.
-            _host.Dispose();
+                // Disposes singletons: engine, hotkeys, tray icon, timers.
+                _host.Dispose();
+            }
+            catch (Exception ex)
+            {
+                // Never block exit on cleanup: a dialog here would keep the process alive.
+                logger.LogError(ex, "Error while shutting down");
+            }
         }
 
         _instanceGuard.Dispose();

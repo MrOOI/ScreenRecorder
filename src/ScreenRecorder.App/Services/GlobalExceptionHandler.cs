@@ -20,6 +20,11 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     {
         logger.LogError(e.Exception, "Unhandled UI exception");
         e.Handled = true;
+        if (e.Dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
         MessageBox.Show(
             "Something went wrong, but Screen Recorder is still running.\n\nDetails were written to the log file.",
             "Screen Recorder", MessageBoxButton.OK, MessageBoxImage.Warning);

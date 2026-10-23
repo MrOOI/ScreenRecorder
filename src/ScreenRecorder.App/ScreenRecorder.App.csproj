@@ -30,4 +30,15 @@
   <ItemGroup>
     <Resource Include="Assets\*.ico" />
   </ItemGroup>
+  <!--
+    ScreenRecorderLib is a C++/CLI mixed-mode assembly. Those cannot be loaded from inside a
+    single-file bundle, so it is published as a separate file next to the executable.
+  -->
+  <Target Name="KeepScreenRecorderLibBesideExe" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                             Condition="'%(Filename)' == 'ScreenRecorderLib'"
+                             ExcludeFromSingleFile="true" />
+    </ItemGroup>
+  </Target>
 </Project>
