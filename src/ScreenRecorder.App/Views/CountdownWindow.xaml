@@ -1,0 +1,21 @@
+<Window x:Class="ScreenRecorder.App.Views.CountdownWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Name="Root"
+        Title="Countdown"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        IsHitTestVisible="False"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
+    <Border Width="160" Height="160" CornerRadius="32" Background="#D91B1B1E">
+        <TextBlock Text="{Binding SecondsRemaining, ElementName=Root}"
+                   FontFamily="Segoe UI" FontSize="88" FontWeight="SemiBold" Foreground="White"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-6,0,0" />
+    </Border>
+</Window>

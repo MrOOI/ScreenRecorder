@@ -1,0 +1,37 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:tb="clr-namespace:H.NotifyIcon;assembly=H.NotifyIcon.Wpf">
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+
+    <!-- DataContext is a TrayViewModel, set by TrayIconService. -->
+    <tb:TaskbarIcon x:Key="TrayIcon"
+                    ToolTipText="{Binding ToolTipText}"
+                    LeftClickCommand="{Binding ShowWindowCommand}"
+                    NoLeftClickDelay="True"
+                    MenuActivation="RightClick">
+        <tb:TaskbarIcon.Style>
+            <Style TargetType="tb:TaskbarIcon">
+                <Setter Property="IconSource" Value="/Assets/app.ico" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Main.IsActive}" Value="True">
+                        <Setter Property="IconSource" Value="/Assets/recording.ico" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </tb:TaskbarIcon.Style>
+        <tb:TaskbarIcon.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Show Screen Recorder" FontWeight="SemiBold" Command="{Binding ShowWindowCommand}" />
+                <Separator />
+                <MenuItem Header="{Binding Main.PrimaryActionText}" Command="{Binding Main.ToggleRecordingCommand}" />
+                <MenuItem Header="{Binding Main.PauseResumeText}" Command="{Binding Main.PauseResumeCommand}"
+                          Visibility="{Binding Main.IsPauseVisible, Converter={StaticResource BoolToVisibility}}" />
+                <Separator />
+                <MenuItem Header="Open recordings folder" Command="{Binding Main.OpenOutputFolderCommand}" />
+                <MenuItem Header="Settings…" Command="{Binding Main.OpenSettingsCommand}" />
+                <Separator />
+                <MenuItem Header="Exit" Command="{Binding ExitCommand}" />
+            </ContextMenu>
+        </tb:TaskbarIcon.ContextMenu>
+    </tb:TaskbarIcon>
+</ResourceDictionary>

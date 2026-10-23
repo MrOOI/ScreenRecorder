@@ -1,0 +1,93 @@
+<Window x:Class="ScreenRecorder.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:ScreenRecorder.App.ViewModels"
+        xmlns:controls="clr-namespace:ScreenRecorder.App.Controls"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
+        Title="Settings"
+        Icon="/Assets/app.ico"
+        Width="440"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+    <StackPanel Margin="20,18,20,16">
+        <TextBlock Text="SAVE TO" Style="{StaticResource SectionTitleText}" />
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Browse…" Margin="8,0,0,0"
+                    Command="{Binding BrowseOutputFolderCommand}" />
+            <TextBox Text="{Binding OutputFolder, Mode=OneWay}" IsReadOnly="True"
+                     ToolTip="{Binding OutputFolder}" AutomationProperties.Name="Output folder" />
+        </DockPanel>
+
+        <TextBlock Text="VIDEO" Style="{StaticResource SectionTitleText}" Margin="0,20,0,8" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Frame rate" Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                <ComboBox ItemsSource="{Binding FrameRates}" SelectedItem="{Binding FrameRate}"
+                          ItemStringFormat="{}{0} fps" AutomationProperties.Name="Frame rate" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Quality" Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                <ComboBox ItemsSource="{Binding Qualities}" SelectedItem="{Binding Quality}"
+                          AutomationProperties.Name="Quality" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Text="SHORTCUTS" Style="{StaticResource SectionTitleText}" Margin="0,20,0,8" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Start / stop" Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                <controls:HotkeyBox Hotkey="{Binding StartStopHotkey}" AutomationProperties.Name="Start or stop shortcut" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Pause / resume" Style="{StaticResource CaptionText}" Margin="0,0,0,4" />
+                <controls:HotkeyBox Hotkey="{Binding PauseResumeHotkey}" AutomationProperties.Name="Pause or resume shortcut" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Text="GENERAL" Style="{StaticResource SectionTitleText}" Margin="0,20,0,8" />
+        <CheckBox Content="Count down before recording starts" IsChecked="{Binding CountdownEnabled}" />
+        <CheckBox Content="Start in the notification area" IsChecked="{Binding StartMinimized}" Margin="0,10,0,0" />
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource ErrorBrush}" Margin="0,14,0,0"
+                   TextWrapping="Wrap">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ErrorMessage}" Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Save" IsDefault="True" Style="{StaticResource PrimaryButton}"
+                    Height="34" MinWidth="88" Tag="8" FontSize="13"
+                    Command="{Binding SaveCommand}" />
+            <Button Content="Cancel" IsCancel="True" MinWidth="88" Margin="8,0,0,0"
+                    Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </StackPanel>
+</Window>

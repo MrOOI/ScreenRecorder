@@ -425,6 +425,8 @@ test-results/
 # Mac bundle stuff
 *.dmg
 *.app
+# Windows paths are case-insensitive: keep the WPF project folder out of the macOS bundle rule above.
+!/src/ScreenRecorder.App/
 
 # content below from: https://github.com/github/gitignore/blob/main/Global/macOS.gitignore
 # General
