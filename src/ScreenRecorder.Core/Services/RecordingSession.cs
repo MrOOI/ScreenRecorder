@@ -196,7 +196,10 @@ public sealed class RecordingSession : IRecordingSession, IDisposable
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
-                failure = RecordingResult.Failure($"The recording could not start. {ex.Message}", TimeSpan.Zero);
+                failure = RecordingResult.Failure(
+                    $"The recording could not start. {ex.Message}",
+                    TimeSpan.Zero,
+                    new RecordingStartException(options, ex));
             }
 
             // The engine may already have failed synchronously inside Start.

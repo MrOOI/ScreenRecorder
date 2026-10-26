@@ -13,10 +13,11 @@ public sealed class RecordingUiCoordinatorTests
     private readonly IAppWindowService _window = Substitute.For<IAppWindowService>();
     private readonly ICountdownPresenter _countdown = Substitute.For<ICountdownPresenter>();
     private readonly INotificationService _notifications = Substitute.For<INotificationService>();
+    private readonly ListLogger<RecordingUiCoordinator> _logger = new();
 
     public RecordingUiCoordinatorTests()
     {
-        new RecordingUiCoordinator(_session, new ImmediateDispatcher(), _window, _countdown, _notifications).Start();
+        new RecordingUiCoordinator(_session, new ImmediateDispatcher(), _window, _countdown, _notifications, _logger).Start();
     }
 
     [Fact]
@@ -59,6 +60,29 @@ public sealed class RecordingUiCoordinatorTests
         _session.Finished += Raise.EventWith(_session, new RecordingFinishedEventArgs(result));
 
         _notifications.Received(1).ShowRecordingResult(result);
+    }
+
+    [Fact]
+    public void Failure_with_exception_is_logged_for_the_error_report()
+    {
+        var cause = new InvalidOperationException("No display.");
+        var result = RecordingResult.Failure("The recording could not start.", TimeSpan.Zero, cause);
+
+        _session.Finished += Raise.EventWith(_session, new RecordingFinishedEventArgs(result));
+
+        _logger.Entries.Should().ContainSingle()
+            .Which.Should().Match<(Microsoft.Extensions.Logging.LogLevel Level, Exception? Exception, string Message)>(
+                e => e.Level == Microsoft.Extensions.Logging.LogLevel.Error && e.Exception == cause);
+    }
+
+    [Fact]
+    public void Failure_already_logged_by_the_engine_is_not_logged_again()
+    {
+        var result = RecordingResult.Failure("The recording failed.", TimeSpan.Zero);
+
+        _session.Finished += Raise.EventWith(_session, new RecordingFinishedEventArgs(result));
+
+        _logger.Entries.Should().BeEmpty();
     }
 
     private void Change(RecordingState from, RecordingState to) =>

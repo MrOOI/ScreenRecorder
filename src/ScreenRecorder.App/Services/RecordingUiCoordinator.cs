@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using ScreenRecorder.Core.Abstractions;
 using ScreenRecorder.Core.Models;
 
@@ -12,7 +13,8 @@ public sealed class RecordingUiCoordinator(
     IUiDispatcher dispatcher,
     IAppWindowService window,
     ICountdownPresenter countdown,
-    INotificationService notifications) : IDisposable
+    INotificationService notifications,
+    ILogger<RecordingUiCoordinator> logger) : IDisposable
 {
     public void Start()
     {
@@ -57,6 +59,14 @@ public sealed class RecordingUiCoordinator(
         }
     });
 
-    private void OnFinished(object? sender, RecordingFinishedEventArgs e) =>
+    private void OnFinished(object? sender, RecordingFinishedEventArgs e)
+    {
+        // Logging at Error with the exception also produces the detailed error report file.
+        if (e.Result is { IsSuccess: false, Exception: { } exception })
+        {
+            logger.LogError(exception, "Recording failed: {Reason}", e.Result.ErrorMessage);
+        }
+
         notifications.ShowRecordingResult(e.Result);
+    }
 }

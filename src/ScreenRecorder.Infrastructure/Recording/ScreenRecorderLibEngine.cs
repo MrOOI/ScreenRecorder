@@ -14,6 +14,7 @@ internal sealed class ScreenRecorderLibEngine(RecordingOptionsMapper mapper, ILo
 {
     private readonly object _gate = new();
     private Recorder? _recorder;
+    private RecordingOptions? _currentOptions;
     private bool _disposed;
 
     public event EventHandler<RecordingEngineCompletedEventArgs>? Completed;
@@ -32,23 +33,9 @@ internal sealed class ScreenRecorderLibEngine(RecordingOptionsMapper mapper, ILo
                 throw new InvalidOperationException("A recording is already in progress.");
             }
 
-            var recorder = Recorder.CreateRecorder(mapper.Map(options));
-            recorder.OnRecordingComplete += OnRecordingComplete;
-            recorder.OnRecordingFailed += OnRecordingFailed;
-            _recorder = recorder;
-
-            logger.LogInformation("Recording {Source} to {Path} at {Fps} fps", options.Source, options.OutputFilePath, options.FrameRate);
-            try
-            {
-                recorder.Record(options.OutputFilePath);
-            }
-            catch
-            {
-                _recorder = null;
-                Detach(recorder);
-                recorder.Dispose();
-                throw;
-            }
+            // Failures propagate to the session, which reports them with the options attached.
+            StartRecorder(options);
+            _currentOptions = options;
         }
     }
 
@@ -81,6 +68,27 @@ internal sealed class ScreenRecorderLibEngine(RecordingOptionsMapper mapper, ILo
         }
     }
 
+    private void StartRecorder(RecordingOptions options)
+    {
+        var recorder = Recorder.CreateRecorder(mapper.Map(options));
+        recorder.OnRecordingComplete += OnRecordingComplete;
+        recorder.OnRecordingFailed += OnRecordingFailed;
+        _recorder = recorder;
+
+        logger.LogInformation("Recording {Source} to {Path} at {Fps} fps", options.Source, options.OutputFilePath, options.FrameRate);
+        try
+        {
+            recorder.Record(options.OutputFilePath);
+        }
+        catch
+        {
+            _recorder = null;
+            Detach(recorder);
+            recorder.Dispose();
+            throw;
+        }
+    }
+
     private void OnRecordingComplete(object? sender, RecordingCompleteEventArgs e)
     {
         logger.LogInformation("Recording saved to {Path}", e.FilePath);
@@ -90,7 +98,9 @@ internal sealed class ScreenRecorderLibEngine(RecordingOptionsMapper mapper, ILo
 
     private void OnRecordingFailed(object? sender, RecordingFailedEventArgs e)
     {
-        logger.LogError("Recording to {Path} failed: {Error}", e.FilePath, e.Error);
+        // The native library reports a message, not an exception; wrap it so the failure gets a full report.
+        var failure = new RecordingEngineException(e.Error, e.FilePath);
+        logger.LogError(failure, "Recording failed: {Error}. Options: {Options}", e.Error, _currentOptions);
         Release(sender);
         Failed?.Invoke(this, new RecordingEngineFailedEventArgs($"The recording failed: {e.Error}"));
     }
@@ -121,6 +131,7 @@ internal sealed class ScreenRecorderLibEngine(RecordingOptionsMapper mapper, ILo
             if (ReferenceEquals(_recorder, recorder))
             {
                 _recorder = null;
+                _currentOptions = null;
             }
         }
 

@@ -13,4 +13,8 @@ public static class AppDataPaths
     public static string SettingsFile { get; } = Path.Combine(Root, "settings.json");
 
     public static string LogsFolder { get; } = Path.Combine(Root, "logs");
+
+    /// <summary>Per-user, per-machine data; fallback for error reports when the install folder is read-only.</summary>
+    public static string LocalRoot { get; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenRecorder");
 }

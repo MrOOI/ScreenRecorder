@@ -43,6 +43,10 @@ Source: "{#PublishDir}\ScreenRecorderLib.dll"; DestDir: "{app}"; Flags: ignoreve
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
+[UninstallDelete]
+; Error reports written by the app next to its executable.
+Type: filesandordirs; Name: "{app}\logs"
+
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 

@@ -161,6 +161,11 @@ public sealed class RecordingSessionTests : IDisposable
 
         _sut.State.Should().Be(RecordingState.Failed);
         _results.Should().ContainSingle().Which.ErrorMessage.Should().Contain("No display.");
+
+        // The cause travels with the result so the app can write an error report.
+        var cause = _results[0].Exception.Should().BeOfType<RecordingStartException>().Subject;
+        cause.Options.Should().Be(TestData.Options());
+        cause.InnerException!.Message.Should().Be("No display.");
     }
 
     [Fact]

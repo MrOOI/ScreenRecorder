@@ -339,3 +339,10 @@ Decisions that changed while implementing, and why.
 Repository pitfalls found:
 - The stock Visual Studio `.gitignore` has a macOS `*.app` rule. Git on Windows is case-insensitive, so it silently ignored `src/ScreenRecorder.App/`. An explicit exception was added.
 - The same file ignores `*.pubxml`; the release profile is whitelisted.
+
+### 9.1 Error reports (added 2026-10-26)
+
+- Each failure writes `<install folder>\logs\<yyyy-MM-dd>\<yyyy-MM-dd_HH-mm-ss-fff>_<RootCauseType>.txt`. The file holds the summary, the root-cause stack first, the exception chain, context and environment. If the install folder is read-only, reports go to `%LocalAppData%\ScreenRecorder\logs\`.
+- Mechanism: a Serilog sink (`ErrorReportSink`) turns every Error/Fatal log event that carries an exception into a report. Call sites only need to log, and no class depends on the report writer except the global handler, which shows the report path.
+- Startup failures, which happen before logging exists, are written directly by `App`.
+- `RecordingResult.Exception` carries causes that the Core caught without logging. `RecordingStartException` adds the recording options, and `RecordingUiCoordinator` logs it once. Native engine failures are wrapped in `RecordingEngineException` and logged by the engine.

@@ -24,7 +24,28 @@ A minimal screen recorder for Windows. Pick what to record, press **Record**, ge
 
 - After each recording: **Open** or **Show in folder** straight from the window.
 - Follows the Windows **light / dark** app theme. Per-monitor DPI aware.
-- Settings persist in `%AppData%\ScreenRecorder\settings.json`; logs in `%AppData%\ScreenRecorder\logs`.
+- Settings persist in `%AppData%\ScreenRecorder\settings.json`; the running log is in `%AppData%\ScreenRecorder\logs`.
+
+## Error reports
+
+Every failure or crash writes one detailed text file next to the app:
+
+```
+<install folder>\logs\<yyyy-MM-dd>\<yyyy-MM-dd_HH-mm-ss-fff>_<Problem>.txt
+e.g.  logs\2026-10-26\2026-10-26_10-02-15-020_FileNotFoundException.txt
+```
+
+`<Problem>` is the type of the exception that started the failure. Each file contains:
+
+1. A summary: time, severity, component, what was being done, and the problem.
+2. **Main stack**: the stack trace of the exception where the problem started.
+3. The full exception chain, with HResult, source, target site and data for each.
+4. Context, such as the recording options or file paths involved.
+5. The environment: app version, install folder, OS, .NET runtime, culture and memory.
+
+Reports are produced for unhandled exceptions, crashes, failed recordings, and any other error the app logs with an exception. A failure during startup is reported too.
+
+If the install folder is not writable, for example under `Program Files`, reports go to `%LocalAppData%\ScreenRecorder\logs\` instead. The uninstaller removes the install folder's `logs`.
 
 ## Requirements
 

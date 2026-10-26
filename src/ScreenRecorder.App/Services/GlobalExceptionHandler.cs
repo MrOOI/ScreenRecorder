@@ -1,13 +1,15 @@
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
+using ScreenRecorder.App.Diagnostics;
 
 namespace ScreenRecorder.App.Services;
 
 /// <summary>
-/// Last line of defence: logs anything unhandled and keeps the app alive where possible.
+/// Last line of defence: logs anything unhandled (which also writes an error report)
+/// and keeps the app alive where possible.
 /// </summary>
-public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, ErrorReportWriter reports)
 {
     public void Attach(Application application)
     {
@@ -25,8 +27,9 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             return;
         }
 
+        var where = reports.LastReportPath is { } path ? $"A report was saved to:\n{path}" : "Details were written to the log file.";
         MessageBox.Show(
-            "Something went wrong, but Screen Recorder is still running.\n\nDetails were written to the log file.",
+            $"Something went wrong, but Screen Recorder is still running.\n\n{where}",
             "Screen Recorder", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
@@ -36,6 +39,10 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         e.SetObserved();
     }
 
+    // The process is about to terminate; the report is written synchronously by the log sink.
     private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e) =>
-        logger.LogCritical(e.ExceptionObject as Exception, "Fatal unhandled exception");
+        logger.LogCritical(
+            e.ExceptionObject as Exception ?? new InvalidOperationException($"Non-exception object thrown: {e.ExceptionObject}"),
+            "Fatal unhandled exception (terminating: {IsTerminating})",
+            e.IsTerminating);
 }
