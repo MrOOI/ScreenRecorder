@@ -10,7 +10,7 @@ A minimal screen recorder for Windows. Pick what to record, press **Record**, ge
 ## Features
 
 - Record a **full display**, a single **window**, or a dragged **region**.
-- **MP4** output (H.264 video, AAC audio) at 30 or 60 fps, three quality presets.
+- **MP4** output (H.264 video, AAC audio) at 30 or 60 fps, three quality presets. Bitrate scales with the captured size and frame rate (Medium ≈ 7.5 Mbps at 1080p30), so small text stays readable.
 - **System audio** and **microphone**, each optional; mouse **cursor** optional.
 - **Pause / resume** without gaps in the file.
 - **3-second countdown** (can be turned off). The countdown never appears in the video.

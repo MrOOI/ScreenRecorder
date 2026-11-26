@@ -11,6 +11,7 @@ internal static class NativeMethods
     public const uint GwOwner = 4;
     public const long WsExToolWindow = 0x00000080L;
     public const int DwmwaCloaked = 14;
+    public const int DwmwaExtendedFrameBounds = 9;
     public const uint MonitorInfoFPrimary = 0x1;
     public const int WmHotkey = 0x0312;
     public const uint ModNoRepeat = 0x4000;
@@ -88,6 +89,10 @@ internal static class NativeMethods
     [DllImport("dwmapi.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     public static extern int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
+
+    [DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    public static extern int DwmGetWindowRectAttribute(nint hwnd, int attribute, out Rect value, int size);
 
     [DllImport("user32.dll", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

@@ -346,3 +346,10 @@ Repository pitfalls found:
 - Mechanism: a Serilog sink (`ErrorReportSink`) turns every Error/Fatal log event that carries an exception into a report. Call sites only need to log, and no class depends on the report writer except the global handler, which shows the report path.
 - Startup failures, which happen before logging exists, are written directly by `App`.
 - `RecordingResult.Exception` carries causes that the Core caught without logging. `RecordingStartException` adds the recording options, and `RecordingUiCoordinator` logs it once. Native engine failures are wrapped in `RecordingEngineException` and logged by the engine.
+
+### 9.2 Video bitrate for readable text (added 2026-10-27)
+
+- Problem: v1.0.0 used the library's quality-based VBR mode (Low/Medium/High mapped to quality 50/70/90). The Intel UHD hardware encoder turned Medium into about 210 kbps at 1080p30. Text in motion picked up ringing and blocking, and users reported it as hard to read.
+- Fix: H.264 `UnconstrainedVBR` with an explicit target of width × height × fps × bits per pixel. Low uses 0.06, Medium 0.12 and High 0.20 bits per pixel, clamped to 1–80 Mbps (`VideoBitrate`). Medium is about 7.5 Mbps at 1080p30. The frame size comes from the display, the clipped region, or the window's DWM frame bounds, falling back to 1080p.
+- Measured on the reference laptop with 8 s of scrolling 13 px Consolas text: 0.64 MB before and 1.6 MB after, with visibly cleaner glyph edges. Static desktops still produce small files, because unchanged frames cost almost nothing.
+- Not changed: H.264 4:2:0 chroma subsampling, which is required for MP4 playback everywhere. It slightly softens small coloured text on coloured backgrounds.

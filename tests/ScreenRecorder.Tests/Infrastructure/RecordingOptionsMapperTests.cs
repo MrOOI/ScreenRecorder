@@ -89,17 +89,38 @@ public sealed class RecordingOptionsMapperTests
     }
 
     [Theory]
-    [InlineData(VideoQuality.Low, 50)]
-    [InlineData(VideoQuality.Medium, 70)]
-    [InlineData(VideoQuality.High, 90)]
-    public void Quality_and_frame_rate_map_to_encoder(VideoQuality quality, int expectedPercent)
+    [InlineData(VideoQuality.Low, 7_464_960)]
+    [InlineData(VideoQuality.Medium, 14_929_920)]
+    [InlineData(VideoQuality.High, 24_883_200)]
+    public void Quality_and_frame_rate_map_to_an_explicit_bitrate(VideoQuality quality, int expectedBitrate)
     {
         var result = _sut.Map(TestData.Options() with { Quality = quality, FrameRate = 60 });
 
-        result.VideoEncoderOptions.Quality.Should().Be(expectedPercent);
+        var encoder = result.VideoEncoderOptions.Encoder.Should().BeOfType<H264VideoEncoder>().Subject;
+        encoder.BitrateMode.Should().Be(H264BitrateControlMode.UnconstrainedVBR);
+        result.VideoEncoderOptions.Bitrate.Should().Be(expectedBitrate);
         result.VideoEncoderOptions.Framerate.Should().Be(60);
         result.VideoEncoderOptions.IsFixedFramerate.Should().BeTrue();
-        result.VideoEncoderOptions.Encoder.Should().BeOfType<H264VideoEncoder>();
+    }
+
+    [Fact]
+    public void Region_bitrate_follows_the_clipped_region_size()
+    {
+        var region = new RegionCaptureSource(TestData.PrimaryDisplay, new ScreenRegion(0, 0, 1280, 720));
+
+        var result = _sut.Map(TestData.Options(region) with { Quality = VideoQuality.High, FrameRate = 30 });
+
+        result.VideoEncoderOptions.Bitrate.Should().Be(VideoBitrate.For(1280, 720, 30, VideoQuality.High));
+    }
+
+    [Fact]
+    public void Unmeasurable_window_gets_a_1080p_budget()
+    {
+        var window = new WindowCaptureSource(new WindowInfo(1234, "Gone", "gone"));
+
+        var result = _sut.Map(TestData.Options(window) with { Quality = VideoQuality.Medium, FrameRate = 30 });
+
+        result.VideoEncoderOptions.Bitrate.Should().Be(VideoBitrate.For(1920, 1080, 30, VideoQuality.Medium));
     }
 
     [Fact]

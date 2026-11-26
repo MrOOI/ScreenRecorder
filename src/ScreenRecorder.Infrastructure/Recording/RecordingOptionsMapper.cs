@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using ScreenRecorder.Core.Models;
+using ScreenRecorder.Infrastructure.Interop;
 using ScreenRecorderLib;
 
 namespace ScreenRecorder.Infrastructure.Recording;
@@ -23,26 +25,45 @@ internal sealed class RecordingOptionsMapper(IAudioSourceFactory audioSources, I
             {
                 Encoder = new H264VideoEncoder
                 {
-                    BitrateMode = H264BitrateControlMode.Quality,
+                    // An explicit bitrate target, not quality-based VBR: hardware encoders in quality
+                    // mode drop static screen content to a few hundred kbps and text becomes unreadable.
+                    BitrateMode = H264BitrateControlMode.UnconstrainedVBR,
                     EncoderProfile = H264Profile.High,
                 },
+                Bitrate = TargetBitrate(options),
                 Framerate = options.FrameRate,
                 // Constant frame rate: variable-rate files confuse many editors and some players.
                 IsFixedFramerate = true,
-                Quality = QualityPercent(options.Quality),
                 IsHardwareEncodingEnabled = true,
                 IsMp4FastStartEnabled = true,
             },
         };
     }
 
-    internal static int QualityPercent(VideoQuality quality) => quality switch
+    internal static int TargetBitrate(RecordingOptions options)
     {
-        VideoQuality.Low => 50,
-        VideoQuality.Medium => 70,
-        VideoQuality.High => 90,
-        _ => throw new ArgumentOutOfRangeException(nameof(quality), quality, null),
+        var (width, height) = FrameSize(options.Source);
+        return VideoBitrate.For(width, height, options.FrameRate, options.Quality);
+    }
+
+    private static (int Width, int Height) FrameSize(CaptureSource source) => source switch
+    {
+        DisplayCaptureSource display => SizeOf(display.Display.Bounds),
+        RegionCaptureSource region => SizeOf(ClipToDisplay(region)),
+        WindowCaptureSource window => WindowSize(window.Window.Handle),
+        _ => throw new NotSupportedException($"Unsupported capture source {source.GetType().Name}."),
     };
+
+    private static (int Width, int Height) SizeOf(ScreenRegion region) => (region.Width, region.Height);
+
+    /// <summary>The window's visible bounds; a 1080p budget if the window cannot be measured.</summary>
+    private static (int Width, int Height) WindowSize(nint handle)
+    {
+        var hr = NativeMethods.DwmGetWindowRectAttribute(handle, NativeMethods.DwmwaExtendedFrameBounds,
+            out var rect, Marshal.SizeOf<NativeMethods.Rect>());
+        var (width, height) = (rect.Right - rect.Left, rect.Bottom - rect.Top);
+        return hr == 0 && width > 0 && height > 0 ? (width, height) : (1920, 1080);
+    }
 
     private static RecordingSourceBase CreateSource(CaptureSource source, bool showCursor) => source switch
     {
@@ -68,6 +89,12 @@ internal sealed class RecordingOptionsMapper(IAudioSourceFactory audioSources, I
 
     private static ScreenRect ToScreenRect(RegionCaptureSource region)
     {
+        var clipped = ClipToDisplay(region);
+        return new ScreenRect(clipped.X, clipped.Y, clipped.Width, clipped.Height);
+    }
+
+    private static ScreenRegion ClipToDisplay(RegionCaptureSource region)
+    {
         var displaySize = new ScreenRegion(0, 0, region.Display.Bounds.Width, region.Display.Bounds.Height);
         var clipped = region.Region.Intersect(displaySize).WithEvenSize();
         if (clipped.IsEmpty)
@@ -75,7 +102,7 @@ internal sealed class RecordingOptionsMapper(IAudioSourceFactory audioSources, I
             throw new ArgumentException("The selected region is outside the display.", nameof(region));
         }
 
-        return new ScreenRect(clipped.X, clipped.Y, clipped.Width, clipped.Height);
+        return clipped;
     }
 
     private AudioOptions CreateAudio(RecordingOptions options)
